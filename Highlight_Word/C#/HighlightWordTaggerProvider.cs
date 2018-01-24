@@ -51,8 +51,7 @@ namespace HighlightWordSample
             if (textView.TextBuffer != buffer)
                 return null;
 
-            ITextStructureNavigator textStructureNavigator =
-                TextStructureNavigatorSelector.GetTextStructureNavigator(buffer);
+            ITextStructureNavigator textStructureNavigator = TextStructureNavigatorSelector.GetTextStructureNavigator(buffer);
 
             return new HighlightWordTagger(textView, buffer, TextSearchService, textStructureNavigator) as ITagger<T>;
         }

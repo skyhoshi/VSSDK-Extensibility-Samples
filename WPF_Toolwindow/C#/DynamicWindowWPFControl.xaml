@@ -20,7 +20,18 @@ PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
              x:Name="Toolwindow"
              Background="{DynamicResource {x:Static vsp:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
              Foreground="{DynamicResource {x:Static vsp:EnvironmentColors.ToolWindowTextBrushKey}}">
-
+    <StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions></Grid.RowDefinitions>
+            <ListView>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding }"></TextBlock>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
     <Grid Margin="10" Height="290" Width="180" VerticalAlignment="Top" HorizontalAlignment="Left">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -65,5 +76,6 @@ PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
                                 theming:ImageThemingUtilities.ImageBackgroundColor="{Binding Background, ElementName=Toolwindow, Converter={StaticResource BrushToColorConverter}}" />
         </StackPanel>
     </Grid>
+    </StackPanel>
 </UserControl>
 

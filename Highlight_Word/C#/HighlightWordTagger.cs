@@ -9,6 +9,9 @@
 //
 //***************************************************************************
 
+using System.Windows.Controls;
+using HighlightWord;
+
 namespace HighlightWordSample
 {
     using System;
@@ -26,8 +29,8 @@ namespace HighlightWordSample
     /// Derive from TextMarkerTag, in case anyone wants to consume
     /// just the HighlightWordTags by themselves.
     /// </summary>
-    public class HighlightWordTag : TextMarkerTag 
-    { 
+    public class HighlightWordTag : TextMarkerTag
+    {
         public HighlightWordTag() : base("blue") { }
     }
 
@@ -37,6 +40,7 @@ namespace HighlightWordSample
     /// </summary>
     public class HighlightWordTagger : ITagger<HighlightWordTag>
     {
+        private IWpfTextView _view { get; set; }
         private ITextView View { get; set; }
         private ITextBuffer SourceBuffer { get; set; }
         private ITextSearchService TextSearchService { get; set; }
@@ -50,24 +54,49 @@ namespace HighlightWordSample
         // The current request, from the last cursor movement or view render
         private SnapshotPoint RequestedPoint { get; set; }
 
-        public HighlightWordTagger(ITextView view, ITextBuffer sourceBuffer, ITextSearchService textSearchService, 
-                                   ITextStructureNavigator textStructureNavigator)
+
+        private IAdornmentLayer _adornmentLayer { get; set; }
+        private HighlightWord.FireworkControl _root { get; set; }
+
+        private MultiCube.Program MultiCube { get; set; } = new MultiCube.Program();
+
+        private System.Threading.Timer FireworksTimer { get; set; }
+
+        public HighlightWordTagger(ITextView view, ITextBuffer sourceBuffer, ITextSearchService textSearchService, ITextStructureNavigator textStructureNavigator)
         {
             View = view;
             SourceBuffer = sourceBuffer;
             TextSearchService = textSearchService;
             TextStructureNavigator = textStructureNavigator;
 
+            _root = new FireworkControl();
+            //_adornmentLayer = _view.GetAdornmentLayer("TypingSpeed");
+
             WordSpans = new NormalizedSnapshotSpanCollection();
             CurrentWord = null;
+            //Setup the fireworks
+            MultiCube.Setup();
+            //Start the timer
+            FireworksTimer = new Timer(TimerTickCallback, null, (new TimeSpan(0, 0, 24)), (new TimeSpan(-1)));
 
+            
             // Subscribe to both change events in the view - any time the view is updated
             // or the caret is moved, we refresh our list of highlighted words.
             View.Caret.PositionChanged += CaretPositionChanged;
             View.LayoutChanged += ViewLayoutChanged;
         }
 
+        private void TimerTickCallback(object state)
+        {
+            if (MultiCube.IsOpen)
+            {
+                MultiCube.Destroy();
+            }
+        }
+
         #region Event Handlers
+
+
 
         /// <summary>
         /// Force an update if the view layout changes
@@ -98,7 +127,7 @@ namespace HighlightWordSample
 
             if (!point.HasValue)
                 return;
-            
+
             // If the new cursor position is still within the current word (and on the same snapshot),
             // we don't need to check it.
             if (CurrentWord.HasValue &&
@@ -108,7 +137,9 @@ namespace HighlightWordSample
             {
                 return;
             }
-                
+            //if (!MultiCube.IsOpen)
+            //    MultiCube.Run();
+
             RequestedPoint = point.Value;
 
             ThreadPool.QueueUserWorkItem(UpdateWordAdornments);
@@ -171,7 +202,7 @@ namespace HighlightWordSample
             wordSpans.AddRange(TextSearchService.FindAll(findData));
 
             // If we are still up-to-date (another change hasn't happened yet), do a real update
-            if(currentRequest == RequestedPoint)
+            if (currentRequest == RequestedPoint)
                 SynchronousUpdate(currentRequest, new NormalizedSnapshotSpanCollection(wordSpans), currentWord);
         }
 
@@ -249,5 +280,21 @@ namespace HighlightWordSample
         public event EventHandler<SnapshotSpanEventArgs> TagsChanged;
 
         #endregion
+
+        /// <summary>
+        /// Reposition the Speed Meter adornment whenever the Editor is resized
+        /// </summary>
+        public void OnSizeChange()
+        {
+            //clear the adornment layer of previous adornments
+            _adornmentLayer.RemoveAdornment(_root);
+
+            //Place the image in the top right hand corner of the Viewport
+            Canvas.SetLeft(_root, _view.ViewportRight - 80);
+            Canvas.SetTop(_root, _view.ViewportTop + 15);
+
+            //add the image to the adornment layer and make it relative to the viewports
+            _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, null, _root, null);
+        }
     }
 }
